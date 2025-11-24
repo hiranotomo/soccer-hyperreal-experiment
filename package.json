@@ -1,0 +1,35 @@
+{
+  "name": "soccer-hyperreal-experiment",
+  "version": "0.1.0",
+  "description": "Soccer match simulation using Hyper Real × Time × Space × Action × Git × Language × Binary model",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js",
+    "match": "tsx src/cli/match.ts",
+    "test": "vitest"
+  },
+  "keywords": [
+    "hyperreal",
+    "ai-agents",
+    "soccer-simulation",
+    "teleport-os",
+    "humanity-os",
+    "git-as-reality"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "date-fns": "^4.1.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

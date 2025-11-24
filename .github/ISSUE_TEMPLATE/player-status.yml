@@ -1,0 +1,78 @@
+name: 🏃 Player Status
+description: Report player condition (fatigue, injury, form)
+title: "[PLAYER] <status> - Player #<number> - <time>"
+labels: ["player-status"]
+body:
+  - type: input
+    id: player
+    attributes:
+      label: Player ID
+      placeholder: "player-05-team-a"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: team
+    attributes:
+      label: Team
+      options:
+        - Team A
+        - Team B
+    validations:
+      required: true
+
+  - type: input
+    id: match_time
+    attributes:
+      label: Match Time
+      placeholder: "60:00"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status_type
+    attributes:
+      label: Status Type
+      options:
+        - Low Stamina
+        - Injury
+        - Peak Performance
+        - Poor Form
+        - Recovering
+    validations:
+      required: true
+
+  - type: input
+    id: stamina_level
+    attributes:
+      label: Stamina Level (0-100)
+      placeholder: "35"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      placeholder: "Player #5 showing signs of fatigue. Running speed decreased, missed two tackles in last 5 minutes. Consider substitution."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      options:
+        - Low (Monitor)
+        - Medium (Consider Action)
+        - High (Immediate Action Needed)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: recommendation
+    attributes:
+      label: Recommendation
+      options:
+        - Continue Monitoring
+        - Tactical Adjustment
+        - Substitution Recommended
+        - Medical Attention Needed

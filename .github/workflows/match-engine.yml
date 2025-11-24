@@ -1,0 +1,121 @@
+name: ⚽ Match Engine
+
+on:
+  workflow_dispatch:
+    inputs:
+      team_a:
+        description: 'Team A Name'
+        required: true
+        default: 'Team Alpha'
+      team_b:
+        description: 'Team B Name'
+        required: true
+        default: 'Team Beta'
+      match_speed:
+        description: 'Match Speed (frames per second)'
+        required: true
+        default: '10'
+        type: choice
+        options:
+          - '1'
+          - '5'
+          - '10'
+          - '30'
+          - '60'
+
+  # 定期実行（試合中のみ）
+  schedule:
+    - cron: '*/1 * * * *'  # 毎分実行
+
+jobs:
+  match-frame:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && contains(github.ref, 'match-in-progress'))
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Match Frame
+        id: match_frame
+        run: npm run match:frame
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TEAM_A: ${{ inputs.team_a || 'Team Alpha' }}
+          TEAM_B: ${{ inputs.team_b || 'Team Beta' }}
+          MATCH_SPEED: ${{ inputs.match_speed || '10' }}
+
+      - name: Commit Match Events
+        run: |
+          git config user.name "Match Engine"
+          git config user.email "match-engine@soccer-hyperreal.ai"
+          git add matches/
+          git commit -m "⚽ Frame ${{ steps.match_frame.outputs.frame }}: ${{ steps.match_frame.outputs.event }}" || echo "No changes"
+          git push
+
+      - name: Create Goal Issue
+        if: steps.match_frame.outputs.event_type == 'goal'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const event = JSON.parse('${{ steps.match_frame.outputs.event_data }}');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚽ GOAL: ${event.scorer} - ${event.matchTime}`,
+              body: event.description,
+              labels: ['goal', 'match-event', event.team]
+            });
+
+      - name: Create Foul Issue
+        if: steps.match_frame.outputs.event_type == 'foul'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const event = JSON.parse('${{ steps.match_frame.outputs.event_data }}');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🟨 ${event.cardType}: ${event.player} - ${event.matchTime}`,
+              body: event.description,
+              labels: ['foul', 'match-event', event.cardType]
+            });
+
+      - name: Create Tactical Issue
+        if: steps.match_frame.outputs.tactical_issue == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = JSON.parse('${{ steps.match_frame.outputs.tactical_issue_data }}');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `⚠️ [TACTICS] ${issue.title}`,
+              body: issue.description,
+              labels: ['tactics', 'analysis', issue.team],
+              assignees: [issue.assignTo]
+            });
+
+      - name: Check Match Status
+        id: status
+        run: |
+          MATCH_STATUS=$(node -e "const s = require('./matches/current/status.json'); console.log(s.phase);")
+          echo "status=$MATCH_STATUS" >> $GITHUB_OUTPUT
+
+      - name: End Match
+        if: steps.status.outputs.status == 'fulltime'
+        run: |
+          echo "Match completed!"
+          npm run match:finalize

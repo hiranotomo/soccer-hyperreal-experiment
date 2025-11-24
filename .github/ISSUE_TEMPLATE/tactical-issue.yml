@@ -1,0 +1,78 @@
+name: ⚠️ Tactical Issue
+description: Identify a tactical problem or vulnerability
+title: "[TACTICS] <issue> - <time>"
+labels: ["tactics", "analysis"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Tactical Issue Identified
+        Use this to report tactical problems, vulnerabilities, or areas for improvement.
+
+  - type: dropdown
+    id: team
+    attributes:
+      label: Team Affected
+      options:
+        - Team A
+        - Team B
+        - Both
+    validations:
+      required: true
+
+  - type: input
+    id: reporter
+    attributes:
+      label: Reported By
+      description: Who identified this issue
+      placeholder: "coach-team-a / analyst-team-b"
+    validations:
+      required: true
+
+  - type: input
+    id: match_time
+    attributes:
+      label: Match Time When Noticed
+      placeholder: "35:00"
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Issue Category
+      options:
+        - Defensive Vulnerability
+        - Attacking Inefficiency
+        - Midfield Control
+        - Set Pieces
+        - Player Positioning
+        - Formation Mismatch
+        - Stamina/Fatigue
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Detailed Description
+      description: Explain the tactical issue
+      placeholder: "Our right flank is being overloaded. Opponent's left winger and fullback are creating 2v1 situations repeatedly. Our right midfielder is not tracking back effectively."
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: List of events/commits that demonstrate this issue
+      placeholder: |
+        - Commit abc123: Opponent breakthrough on right (15:30)
+        - Commit def456: Another attack on right flank (22:10)
+        - Commit ghi789: Goal conceded from right side (35:45)
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: Suggested tactical adjustment (will create a PR if approved)
+      placeholder: "Switch to 4-5-1 to add midfield cover, or instruct right midfielder to track back more aggressively."

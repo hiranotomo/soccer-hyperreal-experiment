@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Hyper Real Event Schema",
+  "description": "Universal schema for recording reality as Time × Space × Action",
+  "type": "object",
+  "required": ["timestamp", "frame", "space", "action"],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Absolute time (UTC) when the action occurred"
+    },
+    "frame": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Relative frame number since match start"
+    },
+    "matchTime": {
+      "type": "string",
+      "pattern": "^[0-9]{1,3}:[0-5][0-9]$",
+      "description": "Match clock time (MM:SS)"
+    },
+    "space": {
+      "type": "object",
+      "required": ["physical", "logical"],
+      "properties": {
+        "physical": {
+          "type": "object",
+          "required": ["x", "y"],
+          "properties": {
+            "x": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 105,
+              "description": "X coordinate on field (0-105m)"
+            },
+            "y": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 68,
+              "description": "Y coordinate on field (0-68m)"
+            },
+            "z": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Height above ground (meters)"
+            }
+          }
+        },
+        "logical": {
+          "type": "string",
+          "description": "Git repository path where this action is recorded"
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["type", "agent", "result"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "pass", "shot", "tackle", "interception", "clearance",
+            "dribble", "cross", "header", "save", "goal",
+            "foul", "card", "substitution", "whistle",
+            "tactical_instruction", "commentary"
+          ]
+        },
+        "agent": {
+          "type": "string",
+          "pattern": "^(player|coach|referee|commentator)-[a-z0-9-]+$"
+        },
+        "target": {
+          "type": "string",
+          "description": "Target entity (player, goal, area)"
+        },
+        "result": {
+          "type": "string",
+          "enum": ["success", "failure", "partial", "pending"]
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Action-specific data (power, direction, etc.)"
+        }
+      }
+    },
+    "git": {
+      "type": "object",
+      "properties": {
+        "commit": {
+          "type": "string",
+          "description": "Git commit hash for this action"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Git branch (main = actual match, branches = simulations)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,100 @@
+name: 🟨 Foul / Card
+description: Record a foul or card given in the match
+title: "[FOUL] <card> - Player #<number> (<team>) - <time>"
+labels: ["foul", "match-event"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Foul / Card Recorded
+        Use this template to record fouls and disciplinary actions.
+
+  - type: input
+    id: player
+    attributes:
+      label: Player Committing Foul
+      description: Player ID
+      placeholder: "player-07-team-b"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: team
+    attributes:
+      label: Team
+      options:
+        - Team A
+        - Team B
+    validations:
+      required: true
+
+  - type: input
+    id: match_time
+    attributes:
+      label: Match Time
+      placeholder: "45:30"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: card
+    attributes:
+      label: Card Given
+      options:
+        - None (Warning)
+        - Yellow Card
+        - Second Yellow (Red)
+        - Straight Red Card
+    validations:
+      required: true
+
+  - type: dropdown
+    id: foul_type
+    attributes:
+      label: Foul Type
+      options:
+        - Tactical Foul
+        - Dangerous Play
+        - Handball
+        - Offside
+        - Diving
+        - Dissent
+        - Time Wasting
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: position
+    attributes:
+      label: Position on Field
+      placeholder: |
+        x: 45.5
+        y: 50.0
+    validations:
+      required: true
+
+  - type: input
+    id: victim
+    attributes:
+      label: Player Fouled
+      description: Player who was fouled (if applicable)
+      placeholder: "player-10-team-a"
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened
+      placeholder: "Tactical foul to stop counter-attack. Player #7 pulled back Player #10 who was breaking free."
+    validations:
+      required: true
+
+  - type: input
+    id: referee
+    attributes:
+      label: Referee
+      description: Referee who made the call
+      placeholder: "referee-main"
+    validations:
+      required: true

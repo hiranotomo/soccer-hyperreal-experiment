@@ -1,0 +1,103 @@
+name: 🎯 Tactical PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'tactics/**'
+      - 'lineup/**'
+
+jobs:
+  coach-review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Analyze Tactical Change
+        id: analyze
+        run: npm run tactics:analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+      - name: AI Coach Review
+        uses: actions/github-script@v7
+        env:
+          ANALYSIS: ${{ steps.analyze.outputs.analysis }}
+        with:
+          script: |
+            const analysis = JSON.parse(process.env.ANALYSIS);
+
+            const comment = `## 🤖 AI Coach Analysis
+
+            **Tactical Impact Assessment:**
+
+            ${analysis.impact}
+
+            **Strengths:**
+            ${analysis.strengths.map(s => `- ✅ ${s}`).join('\n')}
+
+            **Risks:**
+            ${analysis.risks.map(r => `- ⚠️ ${r}`).join('\n')}
+
+            **Recommendation:** ${analysis.recommendation}
+
+            **Confidence:** ${analysis.confidence}%
+
+            ---
+            *Analysis by AI Assistant Coach at frame ${analysis.frame}*
+            `;
+
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              body: comment,
+              event: analysis.approve ? 'APPROVE' : 'COMMENT'
+            });
+
+      - name: Request Human Coach Review
+        if: steps.analyze.outputs.needs_human_review == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              reviewers: ['head-coach']  // 人間のコーチにレビュー依頼
+            });
+
+  auto-merge-approved:
+    runs-on: ubuntu-latest
+    needs: coach-review
+    if: github.event.pull_request.reviews.approved_reviews_count >= 2
+
+    steps:
+      - name: Auto-merge Tactical Change
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              merge_method: 'squash',
+              commit_title: `🎯 Tactical Change Approved: ${context.payload.pull_request.title}`
+            });
+
+      - name: Apply Tactical Change to Match
+        run: |
+          npm run tactics:apply --pr=${{ github.event.pull_request.number }}

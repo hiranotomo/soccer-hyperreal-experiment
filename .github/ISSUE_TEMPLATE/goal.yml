@@ -1,0 +1,104 @@
+name: ⚽ Goal
+description: Record a goal scored in the match
+title: "[GOAL] Player #<number> (<team>) - <time>"
+labels: ["goal", "match-event"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Goal Recorded
+        Use this template to record a goal in the match.
+
+  - type: input
+    id: scorer
+    attributes:
+      label: Scorer
+      description: Player who scored the goal
+      placeholder: "player-10-team-a"
+    validations:
+      required: true
+
+  - type: input
+    id: assist
+    attributes:
+      label: Assist
+      description: Player who provided the assist (if any)
+      placeholder: "player-7-team-a"
+
+  - type: dropdown
+    id: team
+    attributes:
+      label: Team
+      options:
+        - Team A
+        - Team B
+    validations:
+      required: true
+
+  - type: input
+    id: match_time
+    attributes:
+      label: Match Time
+      description: Time when goal was scored
+      placeholder: "23:45"
+    validations:
+      required: true
+
+  - type: input
+    id: timestamp
+    attributes:
+      label: Timestamp (UTC)
+      description: Absolute timestamp
+      placeholder: "2025-11-24T10:23:45.123Z"
+    validations:
+      required: true
+
+  - type: input
+    id: frame
+    attributes:
+      label: Frame Number
+      description: Frame number since match start
+      placeholder: "1425"
+    validations:
+      required: true
+
+  - type: textarea
+    id: position
+    attributes:
+      label: Position on Field
+      description: Where the goal was scored from
+      placeholder: |
+        x: 85.5
+        y: 34.0
+        z: 0.5
+    validations:
+      required: true
+
+  - type: dropdown
+    id: goal_type
+    attributes:
+      label: Goal Type
+      options:
+        - Shot
+        - Header
+        - Penalty
+        - Free Kick
+        - Own Goal
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Detailed description of how the goal was scored
+      placeholder: "Player #10 received a through ball from #7, beat the offside trap, and slotted it past the goalkeeper into the bottom right corner."
+    validations:
+      required: true
+
+  - type: input
+    id: commit_hash
+    attributes:
+      label: Git Commit Hash
+      description: Commit hash for this action
+      placeholder: "abc123def456"
