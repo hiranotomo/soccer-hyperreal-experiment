@@ -5,7 +5,7 @@
  */
 
 import { Octokit } from '@octokit/rest';
-import type { HyperRealEvent } from '../../hyperreal/types.js';
+import type { HyperRealEvent } from '../hyperreal/types.js';
 
 export class GitHubClient {
   private octokit: Octokit;
@@ -116,9 +116,11 @@ ${JSON.stringify(event, null, 2)}
    */
   async createTeamDiscussion(
     title: string,
-    body: string,
-    categoryId: string = 'DIC_kwDONXxK284ClaLa' // TODO: Get actual category ID
+    body: string
   ): Promise<string> {
+    // Get the first available discussion category
+    const categoryId = await this.getDiscussionCategoryId();
+
     // Note: Discussions API requires GraphQL
     const mutation = `
       mutation CreateDiscussion($repositoryId: ID!, $categoryId: ID!, $title: String!, $body: String!) {
@@ -202,5 +204,35 @@ ${JSON.stringify(event, null, 2)}
     });
 
     return (result as any).repository.id;
+  }
+
+  /**
+   * Helper: Get discussion category ID (uses first available category)
+   */
+  private async getDiscussionCategoryId(): Promise<string> {
+    const query = `
+      query GetDiscussionCategories($owner: String!, $name: String!) {
+        repository(owner: $owner, name: $name) {
+          discussionCategories(first: 1) {
+            nodes {
+              id
+              name
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await this.octokit.graphql(query, {
+      owner: this.owner,
+      name: this.repo
+    });
+
+    const categories = (result as any).repository.discussionCategories.nodes;
+    if (categories.length === 0) {
+      throw new Error('No discussion categories found. Please enable Discussions in repository settings.');
+    }
+
+    return categories[0].id;
   }
 }

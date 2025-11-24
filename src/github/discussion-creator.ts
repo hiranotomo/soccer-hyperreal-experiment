@@ -3,7 +3,7 @@
  */
 
 import { GitHubClient } from './github-client.js';
-import type { HyperRealEvent, MatchState } from '../../hyperreal/types.js';
+import type { HyperRealEvent, MatchState } from '../hyperreal/types.js';
 
 export class DiscussionCreator {
   private github: GitHubClient;

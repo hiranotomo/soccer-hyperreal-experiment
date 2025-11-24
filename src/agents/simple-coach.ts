@@ -5,7 +5,7 @@
  * Creates REAL GitHub PRs for tactical changes
  */
 
-import type { MatchState, HyperRealEvent } from '../../hyperreal/types.js';
+import type { MatchState, HyperRealEvent } from '../hyperreal/types.js';
 
 export interface TacticalDecision {
   type: 'formation_change' | 'player_instruction' | 'substitution' | 'no_action';

@@ -11,7 +11,7 @@ import type {
   ActionType,
   DecisionType,
   CommunicationChannel,
-} from '../../hyperreal/types.js';
+} from '../hyperreal/types.js';
 import { SimpleCoach } from '../agents/simple-coach.js';
 import { PRCreator } from '../github/pr-creator.js';
 import { DiscussionCreator } from '../github/discussion-creator.js';
@@ -194,14 +194,25 @@ export class MatchEngine {
   }
 
   private generateCommitMessage(action: ActionType, agent: string, success: boolean, cardType: 'yellow' | 'red' | 'none' = 'none'): string {
-    const emoji = {
+    const emojiMap: Record<string, string> = {
       pass: '🦶',
       shot: '🎯',
       goal: '⚽',
       tackle: '🛡️',
       dribble: '⚡',
       foul: cardType === 'yellow' ? '🟨' : cardType === 'red' ? '🟥' : '⚠️',
-    }[action] || '⚽';
+      save: '🧤',
+      interception: '🚫',
+      cross: '↗️',
+      header: '🤕',
+      clearance: '🦵',
+      substitution: '🔄',
+      card: cardType === 'yellow' ? '🟨' : '🟥',
+      tactical_instruction: '📋',
+      whistle: '🎺',
+      commentary: '🎙️',
+    };
+    const emoji = emojiMap[action] || '⚽';
 
     if (action === 'foul') {
       return `${emoji} FOUL: ${agent} - ${cardType !== 'none' ? cardType + ' card' : 'no card'}`;

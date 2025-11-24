@@ -3,7 +3,7 @@
  */
 
 import { simpleGit, SimpleGit } from 'simple-git';
-import type { HyperRealEvent } from '../../hyperreal/types.js';
+import type { HyperRealEvent } from '../hyperreal/types.js';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 
