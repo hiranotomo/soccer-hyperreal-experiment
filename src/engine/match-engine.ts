@@ -189,10 +189,8 @@ export class MatchEngine {
       this.events.push(event);
       console.log(`[${event.matchTime}] ${event.git?.message}`);
 
-      // In a real implementation, this would:
-      // 1. Write event to file
-      // 2. Create git commit
-      // 3. Possibly create GitHub issue (for goals, fouls)
+      // REAL GitHub integration
+      await this.recordEventToGitHub(event);
     }
 
     this.currentFrame++;
@@ -233,5 +231,30 @@ export class MatchEngine {
 
   public getMatchState(): MatchState {
     return this.matchState;
+  }
+
+  /**
+   * Record event to REAL GitHub
+   */
+  private async recordEventToGitHub(event: HyperRealEvent): Promise<void> {
+    // Only create GitHub artifacts if GITHUB_TOKEN is set
+    if (!process.env.GITHUB_TOKEN) {
+      return; // Skip GitHub integration in local testing
+    }
+
+    try {
+      const { GitHubClient } = await import('../github/github-client.js');
+      const github = new GitHubClient();
+
+      // Create GitHub Issue for important events
+      if (event.action.type === 'goal') {
+        const issueNumber = await github.createGoalIssue(event);
+        console.log(`   📝 GitHub Issue #${issueNumber} created for goal`);
+      }
+
+      // TODO: Add more event types (fouls, tactical changes, etc.)
+    } catch (error) {
+      console.error(`   ⚠️  Failed to create GitHub issue:`, error instanceof Error ? error.message : error);
+    }
   }
 }
