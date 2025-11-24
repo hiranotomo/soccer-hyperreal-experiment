@@ -100,19 +100,31 @@ export class MatchEngine {
     let actionType: ActionType;
     let agent: string;
     let success: boolean;
+    let isFoul = false;
+    let cardType: 'yellow' | 'red' | 'none' = 'none';
 
-    if (rand < 0.4) {
+    if (rand < 0.3) {
       actionType = 'pass';
       agent = Math.random() < 0.5 ? 'player-01-team-a' : 'player-01-team-b';
       success = Math.random() < 0.8; // 80% pass success rate
-    } else if (rand < 0.6) {
+    } else if (rand < 0.5) {
       actionType = 'shot';
       agent = Math.random() < 0.5 ? 'player-02-team-a' : 'player-02-team-b';
       success = Math.random() < 0.3; // 30% shot success rate (goal)
-    } else if (rand < 0.8) {
+    } else if (rand < 0.7) {
       actionType = 'tackle';
       agent = Math.random() < 0.5 ? 'player-01-team-a' : 'player-01-team-b';
       success = Math.random() < 0.6; // 60% tackle success
+
+      // Some tackles are fouls
+      if (!success && Math.random() < 0.3) {
+        isFoul = true;
+        actionType = 'foul';
+        // 20% chance of yellow card if it's a foul
+        if (Math.random() < 0.2) {
+          cardType = 'yellow';
+        }
+      }
     } else {
       // No event this frame
       return null;
@@ -142,17 +154,19 @@ export class MatchEngine {
         type: actionType,
         agent: agent as any,
         result: success ? 'success' : 'failure',
-        metadata: {},
+        metadata: isFoul ? { cardType } : {},
       },
       decision: {
-        type: 'autonomous' as DecisionType,
-        from: agent as any,
-        channel: 'internal' as CommunicationChannel,
-        reasoning: `Autonomous decision to ${actionType}`,
+        type: isFoul ? 'ruling' as DecisionType : 'autonomous' as DecisionType,
+        from: isFoul ? 'referee-main' as any : agent as any,
+        channel: isFoul ? 'broadcast' as CommunicationChannel : 'internal' as CommunicationChannel,
+        reasoning: isFoul
+          ? `Foul called: dangerous tackle. ${cardType !== 'none' ? cardType + ' card issued.' : 'No card.'}`
+          : `Autonomous decision to ${actionType}`,
       },
       git: {
         branch: 'match/current',
-        message: this.generateCommitMessage(actionType, agent, success),
+        message: this.generateCommitMessage(actionType, agent, success, cardType),
       },
     };
 
@@ -164,14 +178,19 @@ export class MatchEngine {
     return player ? player.position : { x: 50, y: 34, z: 0 };
   }
 
-  private generateCommitMessage(action: ActionType, agent: string, success: boolean): string {
+  private generateCommitMessage(action: ActionType, agent: string, success: boolean, cardType: 'yellow' | 'red' | 'none' = 'none'): string {
     const emoji = {
       pass: '🦶',
       shot: '🎯',
       goal: '⚽',
       tackle: '🛡️',
       dribble: '⚡',
+      foul: cardType === 'yellow' ? '🟨' : cardType === 'red' ? '🟥' : '⚠️',
     }[action] || '⚽';
+
+    if (action === 'foul') {
+      return `${emoji} FOUL: ${agent} - ${cardType !== 'none' ? cardType + ' card' : 'no card'}`;
+    }
 
     const result = success ? 'success' : 'failed';
     return `${emoji} ${action.toUpperCase()}: ${agent} - ${result}`;
@@ -250,9 +269,13 @@ export class MatchEngine {
       if (event.action.type === 'goal') {
         const issueNumber = await github.createGoalIssue(event);
         console.log(`   📝 GitHub Issue #${issueNumber} created for goal`);
+      } else if (event.action.type === 'foul') {
+        const cardType = (event.action.metadata?.cardType as 'yellow' | 'red' | 'none') || 'none';
+        const issueNumber = await github.createFoulIssue(event, cardType);
+        console.log(`   📝 GitHub Issue #${issueNumber} created for foul`);
       }
 
-      // TODO: Add more event types (fouls, tactical changes, etc.)
+      // TODO: Add more event types (tactical changes, discussions, etc.)
     } catch (error) {
       console.error(`   ⚠️  Failed to create GitHub issue:`, error instanceof Error ? error.message : error);
     }
