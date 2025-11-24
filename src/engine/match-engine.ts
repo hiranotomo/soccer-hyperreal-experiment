@@ -12,6 +12,10 @@ import type {
   DecisionType,
   CommunicationChannel,
 } from '../../hyperreal/types.js';
+import { SimpleCoach } from '../agents/simple-coach.js';
+import { PRCreator } from '../github/pr-creator.js';
+import { DiscussionCreator } from '../github/discussion-creator.js';
+import { GitCommitter } from '../github/git-committer.js';
 
 export interface MatchConfig {
   teamA: string;
@@ -26,11 +30,22 @@ export class MatchEngine {
   private events: HyperRealEvent[] = [];
   private matchState: MatchState;
   private startTime: Date;
+  private coachTeamA: SimpleCoach;
+  private coachTeamB: SimpleCoach;
+  private prCreator: PRCreator;
+  private discussionCreator: DiscussionCreator;
+  private gitCommitter: GitCommitter;
+  private lastCoachCheck: number = 0;
 
   constructor(config: MatchConfig) {
     this.config = config;
     this.startTime = new Date();
     this.matchState = this.initializeMatch();
+    this.coachTeamA = new SimpleCoach('team-a', config.teamA);
+    this.coachTeamB = new SimpleCoach('team-b', config.teamB);
+    this.prCreator = new PRCreator();
+    this.discussionCreator = new DiscussionCreator();
+    this.gitCommitter = new GitCommitter();
   }
 
   private initializeMatch(): MatchState {
@@ -210,6 +225,13 @@ export class MatchEngine {
 
       // REAL GitHub integration
       await this.recordEventToGitHub(event);
+
+      // REAL Git commit
+      const commitHash = await this.gitCommitter.commitAction(event);
+      if (commitHash) {
+        event.git = event.git || { branch: 'main' };
+        event.git.commit = commitHash;
+      }
     }
 
     this.currentFrame++;
@@ -231,10 +253,23 @@ export class MatchEngine {
     while (this.matchState.phase !== 'fulltime') {
       await this.runFrame();
 
+      // Coach checks every 15 frames
+      if (this.currentFrame - this.lastCoachCheck >= 15) {
+        await this.runCoachAnalysis();
+        this.lastCoachCheck = this.currentFrame;
+      }
+
       // Halftime
       if (this.currentFrame === Math.floor(this.config.duration / 2)) {
         this.matchState.phase = 'halftime';
         console.log(`\n⏸️  HALFTIME: ${this.config.teamA} ${this.matchState.score.teamA} - ${this.matchState.score.teamB} ${this.config.teamB}\n`);
+
+        // Create halftime discussions
+        await this.createHalftimeDiscussions();
+
+        // Coaches analyze at halftime
+        await this.runCoachAnalysis();
+
         this.matchState.phase = 'play';
       }
     }
@@ -242,6 +277,12 @@ export class MatchEngine {
     console.log(`\n🏁 FULL TIME: ${this.config.teamA} ${this.matchState.score.teamA} - ${this.matchState.score.teamB} ${this.config.teamB}\n`);
     console.log(`📊 Total Events: ${this.events.length}`);
     console.log(`⚽ Goals: ${this.events.filter(e => e.action.type === 'goal').length}`);
+
+    // Create post-match discussions
+    await this.createPostMatchDiscussions();
+
+    // Push all commits
+    await this.gitCommitter.pushCommits();
   }
 
   public getEvents(): HyperRealEvent[] {
@@ -278,6 +319,122 @@ export class MatchEngine {
       // TODO: Add more event types (tactical changes, discussions, etc.)
     } catch (error) {
       console.error(`   ⚠️  Failed to create GitHub issue:`, error instanceof Error ? error.message : error);
+    }
+  }
+
+  /**
+   * Run coach analysis and create PRs if needed
+   */
+  private async runCoachAnalysis(): Promise<void> {
+    if (!process.env.GITHUB_TOKEN) {
+      return; // Skip if no token
+    }
+
+    try {
+      // Get recent events (last 15 frames)
+      const recentEvents = this.events.slice(-15);
+
+      // Coach Team A analyzes
+      const decisionA = this.coachTeamA.analyzeAndDecide(this.matchState, recentEvents);
+      if (decisionA.type !== 'no_action') {
+        console.log(`\n🎯 Coach ${this.config.teamA} proposes: ${decisionA.type}`);
+        console.log(`   Reasoning: ${decisionA.reasoning}`);
+
+        const prNumber = await this.prCreator.createTacticalPR(
+          decisionA,
+          this.matchState.matchTime,
+          this.coachTeamA.getTeamId(),
+          this.coachTeamA.getTeamName()
+        );
+        console.log(`   📝 GitHub PR #${prNumber} created for tactical change\n`);
+      }
+
+      // Coach Team B analyzes
+      const decisionB = this.coachTeamB.analyzeAndDecide(this.matchState, recentEvents);
+      if (decisionB.type !== 'no_action') {
+        console.log(`\n🎯 Coach ${this.config.teamB} proposes: ${decisionB.type}`);
+        console.log(`   Reasoning: ${decisionB.reasoning}`);
+
+        const prNumber = await this.prCreator.createTacticalPR(
+          decisionB,
+          this.matchState.matchTime,
+          this.coachTeamB.getTeamId(),
+          this.coachTeamB.getTeamName()
+        );
+        console.log(`   📝 GitHub PR #${prNumber} created for tactical change\n`);
+      }
+    } catch (error) {
+      console.error(`   ⚠️  Failed to run coach analysis:`, error instanceof Error ? error.message : error);
+    }
+  }
+
+  /**
+   * Create halftime discussions
+   */
+  private async createHalftimeDiscussions(): Promise<void> {
+    if (!process.env.GITHUB_TOKEN) {
+      return;
+    }
+
+    try {
+      console.log(`\n💬 Creating halftime discussions...\n`);
+
+      // Team A discussion
+      await this.discussionCreator.createHalftimeDiscussion(
+        'team-a',
+        this.config.teamA,
+        this.matchState,
+        this.events
+      );
+
+      // Team B discussion
+      await this.discussionCreator.createHalftimeDiscussion(
+        'team-b',
+        this.config.teamB,
+        this.matchState,
+        this.events
+      );
+    } catch (error) {
+      console.error(`   ⚠️  Failed to create discussions:`, error instanceof Error ? error.message : error);
+    }
+  }
+
+  /**
+   * Create post-match discussions
+   */
+  private async createPostMatchDiscussions(): Promise<void> {
+    if (!process.env.GITHUB_TOKEN) {
+      return;
+    }
+
+    try {
+      console.log(`\n💬 Creating post-match discussions...\n`);
+
+      const teamAWon = this.matchState.score.teamA > this.matchState.score.teamB;
+      const teamBWon = this.matchState.score.teamB > this.matchState.score.teamA;
+      const drew = this.matchState.score.teamA === this.matchState.score.teamB;
+
+      // Team A discussion
+      await this.discussionCreator.createPostMatchDiscussion(
+        'team-a',
+        this.config.teamA,
+        this.matchState,
+        this.events,
+        teamAWon,
+        drew
+      );
+
+      // Team B discussion
+      await this.discussionCreator.createPostMatchDiscussion(
+        'team-b',
+        this.config.teamB,
+        this.matchState,
+        this.events,
+        teamBWon,
+        drew
+      );
+    } catch (error) {
+      console.error(`   ⚠️  Failed to create post-match discussions:`, error instanceof Error ? error.message : error);
     }
   }
 }
