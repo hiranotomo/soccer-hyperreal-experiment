@@ -9,6 +9,8 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "match": "tsx src/cli/match.ts",
+    "match:quick": "tsx src/cli/match.ts -- --duration=60 --fps=2",
+    "match:full": "tsx src/cli/match.ts -- --duration=5400 --fps=1",
     "test": "vitest"
   },
   "keywords": [
